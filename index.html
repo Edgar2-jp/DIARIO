@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<title>Controle de Consumo | Hospital São Marcos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+:root{
+  --red:#C8102E; --red-dark:#9E0B22; --red-side:#B30F28; --red-soft:#FDECEE; --red-row:#FCE3E6; --red-row-ink:#6B0716;
+  --bg:#F3F4F8; --card:#FFFFFF; --ink:#1E2433; --muted:#7A8195; --line:#E8EAF0; --head:#F6F7FA;
+  --green:#1F8A5B; --green-soft:#E3F5EC; --gray-soft:#EEF0F4; --amber:#B7791F; --amber-soft:#FDF3E1;
+  --input:#FFFFFF; --shadow:0 1px 2px rgba(30,36,51,.06),0 4px 14px rgba(30,36,51,.05);
+  --font:"Plus Jakarta Sans","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --red:#F0475F; --red-dark:#C8102E; --red-side:#7E0A1C; --red-soft:#3A1A20; --red-row:#3E1820; --red-row-ink:#FFDCE1;
+    --bg:#15171D; --card:#1E2129; --ink:#E9EBF1; --muted:#969CAE; --line:#2C303A; --head:#232733;
+    --green:#5FD39E; --green-soft:#1C3A2D; --gray-soft:#2A2E38; --input:#1A1D24;
+  }
+}
+:root[data-theme="dark"]{
+  --red:#F0475F; --red-dark:#C8102E; --red-side:#7E0A1C; --red-soft:#3A1A20; --red-row:#3E1820; --red-row-ink:#FFDCE1;
+  --bg:#15171D; --card:#1E2129; --ink:#E9EBF1; --muted:#969CAE; --line:#2C303A; --head:#232733;
+  --green:#5FD39E; --green-soft:#1C3A2D; --gray-soft:#2A2E38; --input:#1A1D24;
+}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+html,body{height:100%}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:13.5px;line-height:1.45;font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100%}
+/* ---------- barra lateral ---------- */
+.side{background:var(--red-side);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{display:flex;align-items:center;gap:10px;padding:22px 20px 20px;background:var(--red-dark)}
+.logo b{display:block;font-size:16px;font-weight:800;line-height:1.1}
+.logo span{font-size:11.5px;opacity:.75}
+.menu{padding:18px 12px;display:flex;flex-direction:column;gap:4px}
+.menu .grp{font-size:11px;font-weight:700;opacity:.6;padding:10px 12px 4px}
+.menu button{display:flex;align-items:center;gap:12px;border:0;background:none;color:#fff;padding:11px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:13.5px;text-align:left;opacity:.86}
+.menu button:hover{background:rgba(255,255,255,.1);opacity:1}
+.menu button[aria-current="page"]{background:#fff;color:var(--red-side);opacity:1}
+.menu svg{width:17px;height:17px;flex:none}
+.side .foot{margin-top:auto;padding:16px 20px 20px;font-size:12px;border-top:1px solid rgba(255,255,255,.18)}
+.side .foot b{display:block;font-size:12.5px}
+.side .foot span{opacity:.75;display:block}
+.reset{margin-top:12px;width:100%;border:1px solid rgba(255,255,255,.4);background:none;color:#fff;border-radius:7px;padding:8px;font-weight:600;font-size:12px;cursor:pointer}
+.loginbtn{margin-top:12px;width:100%;border:1px solid rgba(255,255,255,.4);background:none;color:#fff;border-radius:7px;padding:8px;font-weight:600;font-size:12px;cursor:pointer}
+.loginbtn:hover{background:rgba(255,255,255,.12)}
+.merr2{display:block;color:#c0392b;font-size:12px;margin-top:6px}
+.mbox label{display:block;font-size:12.5px;font-weight:600;margin:8px 0 4px}
+.mbox input.lf{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #ccc;border-radius:7px;font:inherit}
+.reset:hover{background:rgba(255,255,255,.12)}
+
+/* ---------- topo ---------- */
+.main{min-width:0;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:14px;padding:14px 28px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.top .search{flex:0 1 360px;display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:8px;padding:0 12px;height:38px}
+.top .search input{border:0;background:none;width:100%;height:100%;outline:none}
+.top .sp{flex:1}
+.user{display:flex;align-items:center;gap:10px}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--red-soft);color:var(--red);display:grid;place-items:center;font-weight:800}
+.user b{display:block;font-size:13px}
+.user span{font-size:11.5px;color:var(--muted)}
+.content{padding:24px 28px 48px}
+.ptitle{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 20px;margin-bottom:18px}
+.ptitle h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.01em}
+.ptitle p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.ptitle .sp{flex:1}
+.daynav{display:flex;align-items:center;gap:6px}
+.daynav select{height:38px;border:1px solid var(--line);border-radius:8px;background:var(--card);padding:0 10px;font-weight:600}
+.ib{width:38px;height:38px;border:1px solid var(--line);border-radius:8px;background:var(--card);cursor:pointer;font-size:16px;font-weight:700}
+.ib:disabled{opacity:.4;cursor:not-allowed}
+
+/* ---------- cartões de indicadores ---------- */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:18px}
+.kpi{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:16px 18px;display:flex;justify-content:space-between;gap:10px;min-height:112px}
+.kpi h3{margin:0 0 6px;font-size:13px;font-weight:700}
+.kpi .v{font-size:28px;font-weight:800;color:var(--red);line-height:1.1}
+.kpi .v.ink{color:var(--ink)}
+.kpi .d{display:inline-block;margin-top:8px;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:5px;background:var(--gray-soft);color:var(--muted)}
+.kpi .d.bad{background:var(--red-soft);color:var(--red)}
+.kpi .d.good{background:var(--green-soft);color:var(--green)}
+.spark{align-self:flex-end;flex:none}
+
+/* ---------- cartão principal ---------- */
+.card{background:var(--card);border-radius:12px;box-shadow:var(--shadow)}
+.tabs{display:flex;gap:4px;padding:14px 14px 0;background:var(--bg);border-radius:12px 12px 0 0;overflow-x:auto}
+.tab{border:0;background:#E3E5EC;color:var(--muted);padding:11px 20px;border-radius:10px 10px 0 0;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{background:var(--card);color:var(--ink)}
+.tab .n{font-size:11px;font-weight:800;background:var(--red-soft);color:var(--red);border-radius:20px;padding:1px 8px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tab{background:#262A34}}
+.filters{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:20px 22px 14px}
+.f{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px}
+.f input[type=search],.f select{height:38px;border:1px solid var(--line);border-radius:8px;background:var(--input);padding:0 12px;min-width:200px}
+.f input[type=search]:focus,.f select:focus{border-color:var(--red);outline:none}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;height:38px;overflow:hidden;background:var(--input)}
+.stepper button{border:0;background:none;width:32px;height:38px;cursor:pointer;font-weight:800;font-size:16px;color:var(--red)}
+.stepper input{width:40px;border:0;background:none;text-align:center;font-weight:800;-moz-appearance:textfield}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.chk{display:flex;align-items:center;gap:7px;font-weight:600;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--red)}
+.filters .sp{flex:1}
+.btn{height:38px;padding:0 16px;border-radius:8px;border:1px solid var(--red);background:var(--card);color:var(--red);font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn:hover{background:var(--red-soft)}
+.btn.primary{background:var(--red);color:#fff}
+.btn.primary:hover{background:var(--red-dark)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:15px;height:15px}
+
+.tw{margin:0 22px;border-radius:8px;overflow:auto;max-height:calc(100vh - 210px)}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+th,td{padding:11px 9px;text-align:left;vertical-align:middle;border-bottom:1px solid var(--line)}
+th{position:sticky;top:0;z-index:2;background:var(--head);color:var(--muted);font-weight:600;font-size:12.5px;cursor:pointer;user-select:none;white-space:nowrap;border-bottom:0}
+th:first-child{border-radius:8px 0 0 8px}th:last-child{border-radius:0 8px 8px 0}
+th.on{color:var(--ink)}
+th .arr{color:var(--red);margin-left:4px;font-size:10px}
+.num{text-align:right;white-space:nowrap}
+td.prod{font-weight:700;min-width:190px;max-width:360px}
+td.un{white-space:nowrap;color:var(--muted)}
+td.grp{font-size:12.5px;min-width:160px}
+td.grp span{display:block;color:var(--muted);font-size:12px}
+td.dias{font-weight:800}
+td.nc{color:var(--muted);font-weight:500}
+tr.alert td{background:var(--red-row);color:var(--red-row-ink)}
+tr.alert td:first-child{box-shadow:inset 4px 0 0 var(--red)}
+tr.alert td.un,tr.alert td.grp span{color:inherit}
+td.prev{color:var(--muted)}
+tr.alert td.prev{color:inherit}
+.up{color:var(--green);font-size:10px}.dn{color:var(--red);font-size:10px}
+.pill{display:inline-block;padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.pill.crit{background:var(--red);color:#fff}
+.pill.ok{background:var(--green-soft);color:var(--green)}
+.pill.nc{background:var(--gray-soft);color:var(--muted)}
+.pill.warn{background:var(--amber-soft);color:var(--amber)}
+.pill.info{background:#E8EEFB;color:#2F5BB7}
+.stchips{display:flex;flex-wrap:wrap;gap:8px;padding:0 22px 4px}
+.stchip{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 12px;font-weight:700;font-size:12.5px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.stchip b{font-size:13px}
+.stchip[aria-pressed="true"]{border-color:var(--red);background:var(--red-soft);color:var(--red)}
+td.sug{font-weight:800;color:var(--red)}
+td.spk svg{display:block}
+.tip{font-size:12.5px;color:var(--muted);padding:2px 22px 14px;max-width:110ch}
+/* pesquisa de produto */
+.psearch{position:relative;padding:20px 22px 6px;max-width:720px}
+.psearch input{width:100%;height:46px;border:1.5px solid var(--line);border-radius:10px;padding:0 14px;font-size:15px;background:var(--input)}
+.psearch input:focus{border-color:var(--red);outline:none}
+.sugg{position:absolute;left:22px;right:0;top:70px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(30,36,51,.14);z-index:6;max-height:340px;overflow:auto}
+.sugg button{display:flex;justify-content:space-between;gap:10px;width:100%;border:0;background:none;text-align:left;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--line)}
+.sugg button:hover,.sugg button.act{background:var(--red-soft)}
+.sugg small{color:var(--muted);white-space:nowrap}
+.ph{padding:14px 22px 4px;display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px}
+.ph h2{margin:0;font-size:20px;font-weight:800}
+.ph span{color:var(--muted)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;padding:12px 22px}
+.fact{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.fact small{display:block;color:var(--muted);font-size:12px;font-weight:600}
+.fact b{font-size:18px;font-weight:800}
+.fact b.red{color:var(--red)}
+.pager{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:14px 22px 20px}
+.pager .info{color:var(--muted);font-size:12.5px;margin-right:auto}
+.pg{min-width:32px;height:32px;border:1px solid var(--line);border-radius:7px;background:var(--card);cursor:pointer;font-weight:700;font-size:12.5px;padding:0 6px}
+.pg[aria-current="true"]{border-color:var(--red);color:var(--red);background:var(--red-soft)}
+.pg:disabled{opacity:.4;cursor:not-allowed}
+.empty{padding:50px 20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--ink);font-size:16px;margin-bottom:6px}
+
+/* histórico */
+.chartcard{padding:18px 22px 10px}
+.chartcard h3{margin:0;font-size:15px;font-weight:800}
+.chartcard p{margin:2px 0 10px;color:var(--muted);font-size:12.5px}
+.chart{width:100%;overflow-x:auto}
+.hc{text-align:right;white-space:nowrap;min-width:60px}
+.hc.low{background:var(--red);color:#fff;font-weight:800}
+.hc.miss{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:4px 22px 20px}
+.chip{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:7px;padding:3px 4px 3px 10px;font-size:12.5px}
+.chip button{border:0;background:none;color:var(--red);font-weight:800;cursor:pointer;width:24px;height:24px}
+.note{font-size:12.5px;color:var(--muted);padding:12px 22px 4px}
+
+/* importar */
+.drop{border:2px dashed #E3A8B1;border-radius:12px;background:var(--card);padding:28px;display:grid;gap:14px;box-shadow:var(--shadow);margin-bottom:18px}
+.drop.over{border-color:var(--red);background:var(--red-soft)}
+.drop h2{margin:0;font-size:17px;font-weight:800}
+.drop p{margin:0;color:var(--muted);max-width:70ch}
+.slots{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.slot{border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;gap:12px;align-items:center}
+.slot .ok{width:24px;height:24px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:12px;font-weight:800;flex:none;color:transparent}
+.slot.filled{border-color:var(--green)}
+.slot.filled .ok{background:var(--green);border-color:var(--green);color:#fff}
+.slot b{display:block}
+.slot span{color:var(--muted);font-size:12.5px;word-break:break-all}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.row input[type=date]{height:38px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--input)}
+.msg{font-size:13px;color:var(--muted)}
+.msg.err{color:var(--red);font-weight:700}
+
+.credit{position:fixed;right:16px;bottom:calc(12px + env(safe-area-inset-bottom,0px));background:var(--card);box-shadow:var(--shadow);border:1px solid var(--line);color:var(--red);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;z-index:4}
+.modal{position:fixed;inset:0;background:rgba(20,22,30,.5);display:grid;place-items:center;z-index:30;padding:16px}
+.mbox{background:var(--card);border-radius:12px;padding:22px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.mbox p{margin:0 0 18px;font-size:14.5px}
+.mpass{display:grid;gap:6px;margin:-6px 0 18px;font-weight:700;font-size:13px}
+.mpass input{height:40px;border:1px solid var(--line);border-radius:8px;padding:0 12px;background:var(--input);font-weight:500}
+.mpass input:focus{border-color:var(--red);outline:none}
+.merr{color:var(--red);font-size:12.5px;min-height:16px}
+.mact{display:flex;justify-content:flex-end;gap:8px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--card);padding:10px 16px;border-radius:8px;font-weight:700;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.toast.show{opacity:1}
+
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:820px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center}
+  .logo{padding:12px 14px;background:none}.logo span{display:none}
+  .menu{flex-direction:row;padding:6px 10px;margin-left:auto}.menu .grp{display:none}.menu button span{display:none}
+  .side .foot{padding:0 10px;border:0}.side .foot b,.side .foot span,.side .foot .reset{display:none}.loginbtn{margin:0;width:auto;padding:6px 10px;border-color:rgba(0,0,0,.25);color:inherit}
+  .top{position:static;padding:12px 16px}.top .search{display:none}
+  .content{padding:18px 14px 60px}
+  .kpis{grid-template-columns:1fr 1fr;gap:10px}.spark{display:none}
+  .tw{margin:0 12px;max-height:70vh}.filters{padding:16px 14px}
+}
+@media print{
+  .side,.top,.filters .btn,.filters .stepper,.credit,.toast,.drop,.pager,.tabs,.daynav{display:none!important}
+  .app{display:block}.tw{max-height:none;overflow:visible}th{position:static}body{background:#fff}
+  tr.alert td,.pill.crit,.hc.low{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="logo">
+      <svg width="28" height="36" viewBox="0 0 30 38" aria-hidden="true"><path d="M15 1c2 7 13 12 13 23a13 13 0 0 1-26 0C2 16 9 12 11 6c1 4 3 6 5 7-1-5-1-8-1-12z" fill="#fff"/><path d="M15 20c1 3 6 5 6 10a6 6 0 0 1-12 0c0-4 4-6 6-10z" fill="#F7A5AF"/></svg>
+      <div><b>São Marcos</b><span>Controle de Consumo</span></div>
+    </div>
+    <nav class="menu" aria-label="Seções">
+      <div class="grp">Estoque</div>
+      <button type="button" data-nav="dia" aria-current="page"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2.5" y="3" width="13" height="12" rx="2"/><path d="M2.5 7h13M7 7v8"/></svg><span>Tabela do dia</span></button>
+      <button type="button" data-nav="hist"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 15V9M7.5 15V5M12 15v-4M16 15V3"/></svg><span>Histórico</span></button>
+      <div class="grp">Análise</div>
+      <button type="button" data-nav="compra"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 3h2l2 8h8l2-6H5"/><circle cx="7" cy="14.5" r="1.2"/><circle cx="13" cy="14.5" r="1.2"/></svg><span>Prioridade de compra</span></button>
+      <button type="button" data-nav="tend"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 5l5 5 3-3 6 6"/><path d="M12 13h4v-4"/></svg><span>Tendências</span></button>
+      <button type="button" data-nav="prod"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="8" r="5"/><path d="m12 12 4 4"/></svg><span>Pesquisa de produto</span></button>
+      <div class="grp">Dados</div>
+      <button type="button" data-nav="import" id="navImport" hidden><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 11V3M5.5 6.5 9 3l3.5 3.5"/><path d="M3 11v4h12v-4"/></svg><span>Importar dia</span></button>
+    </nav>
+    <div class="foot"><b id="footRange">Nenhum dia salvo</b><span id="footStore"></span><button type="button" id="btnReset" class="reset" hidden>Apagar todos os dados</button><button type="button" id="btnLogin" class="loginbtn">Entrar</button></div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <label class="search"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="7" cy="7" r="5"/><path d="m11 11 3.5 3.5"/></svg><input id="gq" type="search" placeholder="Buscar produto em todas as categorias" aria-label="Buscar produto"></label>
+      <span class="sp"></span>
+      <div class="user"><div class="avatar">ES</div><div><b>Edgar Silva</b><span>Compras</span></div></div>
+    </header>
+
+    <div class="content">
+      <section class="drop" id="drop" hidden>
+        <h2>Importar os relatórios do dia</h2>
+        <p>Arraste aqui os dois arquivos .xls do sistema (medicamentos e materiais hospitalares) ou escolha os arquivos. Cada dia importado fica salvo separado no histórico.</p>
+        <div class="slots">
+          <div class="slot" id="slotMed"><div class="ok">✓</div><div><b>Medicamentos</b><span>aguardando arquivo</span></div></div>
+          <div class="slot" id="slotMat"><div class="ok">✓</div><div><b>Materiais</b><span>aguardando arquivo</span></div></div>
+        </div>
+        <div class="row">
+          <label class="btn" for="fileIn">Escolher arquivos</label>
+          <input id="fileIn" type="file" accept=".xls,.xlsx" multiple hidden>
+          <label class="f" for="impDate">Data do relatório <input id="impDate" type="date" style="height:38px;border:1px solid var(--line);border-radius:8px;padding:0 10px;background:var(--input)"></label>
+          <button class="btn primary" id="btnProcess" type="button" disabled>Processar e salvar</button>
+          <button class="btn" id="btnCancel" type="button">Cancelar</button>
+        </div>
+        <div class="msg" id="impMsg"></div>
+      </section>
+
+      <div class="ptitle">
+        <div><h1 id="pageTitle">Tabela do dia</h1><p id="pageSub">Estoque diário da farmácia e da enfermagem</p></div>
+        <span class="sp"></span>
+        <div class="daynav">
+          <button class="ib" type="button" id="dPrev" aria-label="Dia anterior">‹</button>
+          <select id="daySel" aria-label="Data do relatório"><option value="">Nenhum dia</option></select>
+          <button class="ib" type="button" id="dNext" aria-label="Próximo dia">›</button>
+        </div>
+      </div>
+      <section class="kpis" id="kpis"></section>
+      <section class="card" id="view"></section>
+    </div>
+  </div>
+</div>
+<div class="credit">Criador: Edgar Silva — Compras</div>
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTxt">
+  <div class="mbox"><p id="modalTxt"></p><div class="mpass" id="mPassBox" hidden><label for="mPass">Senha de administrador</label><input id="mPass" type="password" autocomplete="off"><span class="merr" id="mErr"></span></div><div class="mact"><button class="btn" type="button" id="mNo">Cancelar</button><button class="btn primary" type="button" id="mYes">Apagar</button></div></div>
+</div>
+<div class="modal" id="loginModal" hidden role="dialog" aria-modal="true" aria-labelledby="loginTit">
+  <form class="mbox" id="loginForm"><p id="loginTit"><b>Entrar como administrador</b></p><label for="lgEmail">E-mail</label><input class="lf" id="lgEmail" type="email" autocomplete="username" required><label for="lgPass">Senha</label><input class="lf" id="lgPass" type="password" autocomplete="current-password" required><span class="merr2" id="lgErr"></span><div class="mact" style="margin-top:14px"><button class="btn" type="button" id="lgNo">Cancelar</button><button class="btn primary" type="submit" id="lgYes">Entrar</button></div></form>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script id="core">
+/* ======== lógica de tratamento (sem DOM) ======== */
+const GRUPO_QUIMIO = "Quimioterapia Antineoplásica";
+const KEEP = ["nm_produto","nm_unidade","sd_hosp","cons_mensal","em_transito","nm_grupo","nm_subgrupo"];
+
+function num(v){ if(v===null||v===undefined||v==="") return 0; if(typeof v==="number") return v;
+  const n=parseFloat(String(v).replace(/\./g,"").replace(",",".")); return isNaN(n)?0:n; }
+
+/** Linhas brutas do sistema -> linhas compactas [produto, unidade, sd_hosp, cons_mensal, em_transito, grupo, subgrupo] */
+function tratarBruto(rawRows){
+  if(!rawRows.length) throw new Error("planilha vazia");
+  const keys = Object.keys(rawRows[0]).map(k=>k.trim());
+  const find = (pred)=>Object.keys(rawRows[0]).find(k=>pred(k.trim().toLowerCase()));
+  const kProd=find(k=>k==="nm_produto"), kUn=find(k=>k==="nm_unidade"), kSd=find(k=>k==="sd_hosp"),
+        kCons=find(k=>k==="cons_diario"||k==="cons_mensal"), kComp=find(k=>k.startsWith("tot_comp")),
+        kG=find(k=>k==="nm_grupo"), kSg=find(k=>k==="nm_subgrupo");
+  const kAlm=find(k=>k==="sd_almox"), kFar=find(k=>k==="sd_farm"), kMin=find(k=>k.startsWith("tot_estmin")),
+        kPP=find(k=>k.startsWith("tot_pontop")), kMax=find(k=>k.startsWith("tot_estmax")), kAc=find(k=>k.startsWith("tot_acomp"));
+  const opt=(r,k)=>k?num(r[k]):null;
+  const miss=[["nm_produto",kProd],["sd_hosp",kSd],["cons_diario",kCons],["tot_compras",kComp],["nm_grupo",kG]].filter(x=>!x[1]).map(x=>x[0]);
+  if(miss.length) throw new Error("colunas não encontradas: "+miss.join(", "));
+  return rawRows.filter(r=>String(r[kProd]||"").trim()!=="").map(r=>[
+    String(r[kProd]).trim(), String(r[kUn]??"").trim(), num(r[kSd]), num(r[kCons]), num(r[kComp]),
+    String(r[kG]??"").trim(), String(r[kSg]??"").trim(),
+    opt(r,kAlm), opt(r,kFar), opt(r,kMin), opt(r,kPP), opt(r,kMax), opt(r,kAc)
+  ]);
+}
+
+/** Prioridade de compra: itens com consumo cuja cobertura (estoque + trânsito) fica abaixo da meta de dias */
+function sugestao(r,meta){ return r.cons_diario?Math.max(0,Math.ceil(r.cons_diario*meta-r.sd_hosp-r.em_transito)):0; }
+function statusCompra(r,lim,meta){
+  if(r.dias===null) return null;
+  if(r.dias_transito<lim) return 0;            // comprar já: nem o que está em trânsito cobre o limite
+  if(r.dias<lim) return 1;                     // em alerta, mas o trânsito cobre
+  if(r.dias_transito<meta) return 2;           // planejar: abaixo da meta de cobertura
+  return null;
+}
+function listaCompra(rows,lim,meta){
+  return rows.map(r=>Object.assign({},r,{_st:statusCompra(r,lim,meta),_sug:sugestao(r,meta)})).filter(r=>r._st!==null)
+    .sort((a,b)=>a._st-b._st||a.dias_transito-b.dias_transito||a.nm_produto.localeCompare(b.nm_produto,"pt",{sensitivity:"base",numeric:true}));
+}
+function addDays(iso,n){ const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+/** Tendência de um item ao longo dos relatórios: dias e consumo por data */
+function tendencia(points){
+  // points: [{dias, cons}] em ordem cronológica (undefined = item ausente no dia)
+  const ds=points.map(p=>p&&typeof p.dias==="number"?p.dias:null);
+  let quedas=0; for(let i=ds.length-1;i>0;i--){ if(ds[i]!==null&&ds[i-1]!==null&&ds[i]<ds[i-1]-0.05) quedas++; else break; }
+  const firstIx=ds.findIndex(v=>v!==null), last=ds[ds.length-1];
+  const variacao=(firstIx>=0&&last!==null&&firstIx<ds.length-1)?last-ds[firstIx]:null;
+  const cs=points.map(p=>p?p.cons:null).filter(v=>v!==null&&v!==undefined);
+  const consVar=(cs.length>=2&&cs[0]>0)?(cs[cs.length-1]-cs[0])/cs[0]:null;
+  return {ds,quedas,variacao,consVar};
+}
+
+/** Expande linha compacta com os campos calculados */
+function expand(c){
+  const cons_diario = c[3]/30;
+  const dias = cons_diario ? c[2]/cons_diario : null;   // null = SEERRO -> "0" (sem consumo)
+  const x=(i)=>(c.length>i&&c[i]!==null&&c[i]!==undefined)?c[i]:null;   // colunas extras (dias importados antes podem não ter)
+  const dias_transito = cons_diario ? (c[2]+c[4])/cons_diario : null;
+  return {nm_produto:c[0],nm_unidade:c[1],sd_hosp:c[2],cons_mensal:c[3],cons_diario,dias,em_transito:c[4],nm_grupo:c[5],nm_subgrupo:c[6],
+    dias_transito, sd_almox:x(7), sd_farm:x(8), est_min:x(9), ponto_pedido:x(10), est_max:x(11), a_comprar:x(12)};
+}
+function sortByDias(rows){
+  return rows.slice().sort((a,b)=>{
+    const an=a.dias===null, bn=b.dias===null;
+    if(an!==bn) return an?1:-1;
+    if(!an && a.dias!==b.dias) return a.dias-b.dias;
+    return a.nm_produto.localeCompare(b.nm_produto,"pt",{sensitivity:"base",numeric:true});   // empate: ordem alfabética do produto
+  });
+}
+function isAlert(r,lim){ return r.dias!==null && r.dias<lim; }
+function splitMed(rows){ return {med:rows.filter(r=>r.nm_grupo!==GRUPO_QUIMIO), qui:rows.filter(r=>r.nm_grupo===GRUPO_QUIMIO)}; }
+function guessKind(fileName, rows){
+  const n=fileName.toLowerCase();
+  if(/medic/.test(n)) return "med";
+  if(/mater/.test(n)) return "mat";
+  const mh=rows.filter(r=>r[5]==="Material Hospitalar").length;
+  return mh/rows.length>0.8?"mat":"med";
+}
+function guessDate(fileName, year){
+  const m=fileName.match(/(?:^|[^\d])(\d{1,2})[_.\-](\d{1,2})(?:[_.\-](\d{2,4}))?(?:[^\d]|$)/);
+  if(!m) return null;
+  const d=+m[1], mo=+m[2]; if(d<1||d>31||mo<1||mo>12) return null;
+  let y=m[3]?+m[3]:year; if(y<100) y+=2000;
+  return `${y}-${String(mo).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+}
+function fmtDate(iso){ const [y,m,d]=iso.split("-"); return `${d}/${m}/${y}`; }
+function fmtNum(v,dec){ return v.toLocaleString("pt-BR",{minimumFractionDigits:dec,maximumFractionDigits:dec}); }
+
+/* ======== exportação Excel (ExcelJS) ======== */
+async function buildWorkbook(ExcelJS, day, lim, sets, hist, meta){
+  meta=meta||30;
+  // sets: {mat:[rows], med:[rows], qui:[rows]} (ordenados) ; hist: {dates:[iso], kinds:{mat:{key:{...,v:{iso:dias|null}}}, med, qui}}
+  const wb=new ExcelJS.Workbook();
+  const fontN={name:"Arial",size:10}, fontB={name:"Arial",size:10,bold:true}, fontT={name:"Arial",size:12,bold:true};
+  const fillT={type:"pattern",pattern:"solid",fgColor:{argb:"FFC0C0C0"}};
+  const fillH={type:"pattern",pattern:"solid",fgColor:{argb:"FFA6CAF0"}};
+  const fillY={type:"pattern",pattern:"solid",fgColor:{argb:"FFFFFF00"}};
+  const redStyle={fill:{type:"pattern",pattern:"solid",bgColor:{argb:"FFFF7C80"},fgColor:{argb:"FFFF7C80"}}};
+  const border={top:{style:"thin",color:{argb:"FFBFBFBF"}},left:{style:"thin",color:{argb:"FFBFBFBF"}},bottom:{style:"thin",color:{argb:"FFBFBFBF"}},right:{style:"thin",color:{argb:"FFBFBFBF"}}};
+  const COLS=["nm_produto","nm_unidade","sd_hosp","cons_mensal","cons_diario","dias_em_estoque","em_transito","nm_grupo","nm_subgrupo"];
+  const W=[55,11,10,13,12,16,12,34,38];
+  const names={mat:"Materiais",med:"Medicamentos",qui:"Quimioterápicos"};
+
+  for(const k of ["mat","med","qui"]){
+    const ws=wb.addWorksheet(names[k],{views:[{state:"frozen",xSplit:1,ySplit:2}]});
+    ws.columns=W.map(w=>({width:w}));
+    ws.getCell("A1").value=`${names[k]} ${fmtDate(day)}`;
+    for(let c=1;c<=9;c++){const cell=ws.getRow(1).getCell(c); cell.fill=fillT; cell.font=c===1?fontT:fontB;}
+    ws.getCell("F1").value="Alerta se dias <"; ws.getCell("F1").alignment={horizontal:"right"};
+    ws.getCell("G1").value=lim; ws.getCell("G1").fill=fillY; ws.getCell("G1").alignment={horizontal:"center"};
+    ws.getCell("G1").note="Limite de dias em estoque para destacar a linha em vermelho. Altere aqui.";
+    const hr=ws.getRow(2); COLS.forEach((h,i)=>{const c=hr.getCell(i+1); c.value=h; c.font=fontB; c.fill=fillH; c.border=border;});
+    const rows=sets[k];
+    rows.forEach((r,i)=>{
+      const n=i+3, row=ws.getRow(n);
+      row.values=[r.nm_produto,r.nm_unidade,r.sd_hosp,r.cons_mensal,
+        {formula:`D${n}/30`,result:r.cons_diario},
+        {formula:`IFERROR(C${n}/E${n},"0")`,result:r.dias===null?"0":r.dias},
+        r.em_transito,r.nm_grupo,r.nm_subgrupo];
+      for(let c=1;c<=9;c++){const cell=row.getCell(c); cell.font=fontN; cell.border=border;}
+      row.getCell(4).numFmt="#,##0.00"; row.getCell(5).numFmt="#,##0.00"; row.getCell(6).numFmt="#,##0.0";
+      row.getCell(6).alignment={horizontal:"right"};
+    });
+    const last=Math.max(3,rows.length+2);
+    ws.autoFilter=`A2:I${last}`;
+    ws.addConditionalFormatting({ref:`A3:I${last}`,rules:[{type:"expression",priority:1,formulae:["AND(ISNUMBER($F3),$F3<$G$1)"],style:redStyle}]});
+  }
+
+  // prioridade de compra
+  {
+    const ws=wb.addWorksheet("Prioridade de compra",{views:[{state:"frozen",xSplit:2,ySplit:3}]});
+    const H=["Categoria","Produto","Unid.","Saldo","Consumo mensal","Consumo diário","Dias em estoque","Em trânsito","Dias c/ trânsito","Acaba em","Sugestão de compra","A comprar (sistema)","Status"];
+    ws.columns=[16,50,10,10,14,13,14,12,14,12,16,16,22].map(w=>({width:w}));
+    ws.getCell("A1").value=`Prioridade de compra ${fmtDate(day)}`;
+    for(let c=1;c<=13;c++){const cell=ws.getRow(1).getCell(c); cell.fill=fillT; cell.font=c===1?fontT:fontB;}
+    ws.getCell("A2").value="Alerta se dias <"; ws.getCell("B2").value=lim; ws.getCell("B2").fill=fillY;
+    ws.getCell("C2").value="Cobrir (dias)"; ws.getCell("D2").value=meta; ws.getCell("D2").fill=fillY;
+    ws.getCell("D2").note="Meta de cobertura usada na sugestão de compra. Altere aqui.";
+    [1,3].forEach(c=>{ws.getRow(2).getCell(c).font=fontB;});
+    const hr=ws.getRow(3); H.forEach((t,i)=>{const c=hr.getCell(i+1); c.value=t; c.font=fontB; c.fill=fillH; c.border=border;});
+    const ST=["Comprar já","Trânsito cobre","Planejar"];
+    let n=4;
+    for(const k of ["med","mat","qui"]){
+      for(const r of listaCompra(sets[k],lim,meta)){
+        const row=ws.getRow(n);
+        row.values=[names[k],r.nm_produto,r.nm_unidade,r.sd_hosp,r.cons_mensal,
+          {formula:`E${n}/30`,result:r.cons_diario},
+          {formula:`IFERROR(D${n}/F${n},"0")`,result:r.dias},
+          r.em_transito,
+          {formula:`IFERROR((D${n}+H${n})/F${n},"0")`,result:r.dias_transito},
+          r.dias===null?"":fmtDate(addDays(day,Math.floor(r.dias))),
+          {formula:`MAX(0,ROUNDUP(F${n}*$D$2-D${n}-H${n},0))`,result:r._sug},
+          r.a_comprar===null?"":r.a_comprar, ST[r._st]];
+        for(let c=1;c<=13;c++){const cell=row.getCell(c); cell.font=fontN; cell.border=border;}
+        [5,6,7,9].forEach(c=>row.getCell(c).numFmt="#,##0.0");
+        n++;
+      }
+    }
+    const last=Math.max(4,n-1);
+    ws.autoFilter=`A3:M${last}`;
+    ws.addConditionalFormatting({ref:`A4:M${last}`,rules:[{type:"expression",priority:1,formulae:['$M4="Comprar já"'],style:redStyle}]});
+  }
+
+  // histórico
+  const dates=hist.dates; const FIRST=5;
+  const colL=(n)=>{let s="";while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26);}return s;};
+  for(const k of ["mat","med","qui"]){
+    const ws=wb.addWorksheet("Hist "+names[k],{views:[{state:"frozen",xSplit:4,ySplit:2}]});
+    ws.columns=[{width:55},{width:11},{width:34},{width:14},...dates.map(()=>({width:11}))];
+    const ncols=4+dates.length;
+    ws.getCell("A1").value=`Histórico ${names[k]}: dias em estoque por data`;
+    for(let c=1;c<=Math.max(ncols,6);c++){const cell=ws.getRow(1).getCell(c); cell.fill=fillT; cell.font=c===1?fontT:fontB;}
+    ws.getCell("C1").value="Alerta se dias <"; ws.getCell("C1").alignment={horizontal:"right"};
+    ws.getCell("D1").value={formula:`'${names[k]}'!G1`,result:lim}; ws.getCell("D1").alignment={horizontal:"center"};
+    const hdr=["nm_produto","nm_unidade","nm_grupo","dias_em_alerta",...dates.map(fmtDate)];
+    const hr=ws.getRow(2); hdr.forEach((h,i)=>{const c=hr.getCell(i+1); c.value=h; c.font=fontB; c.fill=fillH; c.border=border; c.alignment={horizontal:"center",wrapText:true};});
+    const items=hist.kinds[k];
+    const lastL=colL(FIRST+dates.length-1), firstL=colL(FIRST);
+    items.forEach((it,i)=>{
+      const n=i+3,row=ws.getRow(n);
+      const cnt=dates.filter(d=>it.v[d]!==undefined&&it.v[d]!==null&&it.v[d]<lim).length;
+      const vals=[it.nm_produto,it.nm_unidade,it.nm_grupo,{formula:`COUNTIF(${firstL}${n}:NZ${n},"<"&$D$1)`,result:cnt}];
+      dates.forEach(d=>{const v=it.v[d]; vals.push(v===undefined?null:(v===null?"0":Math.round(v*10)/10));});
+      row.values=vals;
+      for(let c=1;c<=ncols;c++){const cell=row.getCell(c); cell.font=fontN; cell.border=border; if(c>=FIRST){cell.numFmt="#,##0.0";cell.alignment={horizontal:"right"};}}
+      row.getCell(4).alignment={horizontal:"center"};
+    });
+    const last=Math.max(3,items.length+2);
+    if(dates.length){
+      ws.addConditionalFormatting({ref:`${firstL}3:${lastL}${last}`,rules:[{type:"expression",priority:1,formulae:[`AND(ISNUMBER(${firstL}3),${firstL}3<$D$1)`],style:redStyle}]});
+      ws.addConditionalFormatting({ref:`A3:D${last}`,rules:[{type:"expression",priority:2,formulae:[`AND(ISNUMBER($${lastL}3),$${lastL}3<$D$1)`],style:redStyle}]});
+    }
+    ws.autoFilter=`A2:${colL(ncols)}${last}`;
+  }
+  return wb.xlsx.writeBuffer();
+}
+
+/** Monta o histórico a partir dos dias salvos: days = [{date, mat:[compact], med:[compact]}] (ordem cronológica) */
+function buildHistory(days){
+  const kinds={mat:new Map(),med:new Map(),qui:new Map()};
+  const dates=days.map(d=>d.date);
+  for(const d of days){
+    const mat=(d.mat||[]).map(expand), allMed=(d.med||[]).map(expand), {med,qui}=splitMed(allMed);
+    for(const [k,rows] of [["mat",mat],["med",med],["qui",qui]]){
+      for(const r of rows){
+        const key=r.nm_produto+"\u0001"+r.nm_unidade;
+        let it=kinds[k].get(key);
+        if(!it){it={nm_produto:r.nm_produto,nm_unidade:r.nm_unidade,nm_grupo:r.nm_grupo,v:{}};kinds[k].set(key,it);}
+        it.nm_grupo=r.nm_grupo; it.v[d.date]=r.dias;
+      }
+    }
+  }
+  const out={dates,kinds:{}};
+  for(const k in kinds){
+    out.kinds[k]=[...kinds[k].values()].sort((a,b)=>{
+      const latest=(it)=>{for(let i=dates.length-1;i>=0;i--){if(it.v[dates[i]]!==undefined) return it.v[dates[i]];} return undefined;};
+      const av=latest(a), bv=latest(b);
+      const ar=av===undefined?2:(av===null?1:0), br=bv===undefined?2:(bv===null?1:0);
+      if(ar!==br) return ar-br;
+      if(ar===0 && av!==bv) return av-bv;
+      return a.nm_produto.localeCompare(b.nm_produto,"pt");
+    });
+  }
+  return out;
+}
+if(typeof module!=="undefined") module.exports={tratarBruto,expand,sortByDias,splitMed,guessKind,guessDate,buildWorkbook,buildHistory,isAlert};
+</script>
+<script>
+
+
+/* ======== armazenamento: Supabase (tabela consumo_docs) ======== */
+const SUPABASE_URL="https://mjjpfomgxthzjtqzzfqs.supabase.co";
+const SUPABASE_KEY="sb_publishable_UhlEoBQnKhZxNQWUnl8bFA_sGFnKzs4";
+const sb=window.supabase?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+const Auth={ admin:false, email:null };
+async function refreshAuth(){
+  Auth.admin=false; Auth.email=null;
+  try{
+    const {data}=await sb.auth.getSession();
+    const em=data&&data.session&&data.session.user&&data.session.user.email;
+    if(em){
+      Auth.email=em;
+      const r=await sb.from("consumo_admins").select("email").eq("email",em).maybeSingle();
+      Auth.admin=!!(r.data&&r.data.email);
+    }
+  }catch(e){ console.warn(e); }
+}
+const Store = {
+  mode:"db",
+  async init(){ if(!sb) throw new Error("Supabase não carregou. Verifique a internet e recarregue a página"); },
+  async getDoc(id){
+    const r=await sb.from("consumo_docs").select("data").eq("id",id).maybeSingle();
+    if(r.error) throw r.error; return r.data?r.data.data:null;
+  },
+  async setDoc(id,data){
+    const r=await sb.from("consumo_docs").upsert({id,data,updated_at:new Date().toISOString()});
+    if(r.error) throw r.error;
+  },
+  async clearAll(){
+    const r=await sb.from("consumo_docs").delete().neq("id","");
+    if(r.error) throw r.error;
+  },
+  async delDoc(id){
+    const r=await sb.from("consumo_docs").delete().eq("id",id);
+    if(r.error) throw r.error;
+  }
+};
+async function withRetry(fn){ try{ return await fn(); }catch(e){ if(e&&e.code==="unavailable"){ await new Promise(r=>setTimeout(r,600+Math.random()*600)); return fn(); } throw e; } }
+
+
+
+/* ======== estado ======== */
+const S = { index:{dates:[],limit:7,meta:30}, day:null, cache:{}, view:"dia", tab:"med", q:"", onlyAlert:false,
+  sort:null, histRange:14, histOnlyAlert:false, pending:{med:null,mat:null} };
+const $=(id)=>document.getElementById(id);
+const esc=(s)=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const CAT={mat:"materiais",med:"medicamentos",qui:"quimioterápicos"};
+const WD=["dom","seg","ter","qua","qui","sex","sáb"];
+const wd=(d)=>WD[new Date(d+"T12:00:00").getDay()];
+const sorted=()=>S.index.dates.slice().sort();
+
+function askConfirm(text,yes,needPass){
+  return new Promise(res=>{
+    const m=$("modal"), box=$("mPassBox"), inp=$("mPass"), err=$("mErr");
+    $("modalTxt").textContent=text; $("mYes").textContent=yes||"Confirmar";
+    box.hidden=true; inp.value=""; err.textContent="";
+    m.hidden=false; $("mNo").focus();
+    const done=(v)=>{m.hidden=true; inp.value=""; $("mYes").onclick=$("mNo").onclick=null; document.removeEventListener("keydown",k); res(v);};
+    const ok=()=>{
+      return done(true);
+    };
+    const k=(e)=>{ if(e.key==="Escape") done(false);  };
+    $("mYes").onclick=ok; $("mNo").onclick=()=>done(false); document.addEventListener("keydown",k);
+  });
+}
+function toast(t){ const el=$("toast"); el.textContent=t; el.classList.add("show"); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove("show"),2600); }
+
+async function loadDay(date){
+  if(S.cache[date]) return S.cache[date];
+  const [mat,med]=await Promise.all([withRetry(()=>Store.getDoc("dia_"+date+"_mat")),withRetry(()=>Store.getDoc("dia_"+date+"_med"))]);
+  const d={date,mat:mat?mat.rows:[],med:med?med.rows:[]};
+  S.cache[date]=d; return d;
+}
+const setsCache=new Map();
+function daySets(d){
+  if(setsCache.has(d)) return setsCache.get(d);
+  const {med,qui}=splitMed(d.med.map(expand));
+  const s={mat:sortByDias(d.mat.map(expand)),med:sortByDias(med),qui:sortByDias(qui)};
+  setsCache.set(d,s); return s;
+}
+async function saveIndex(){ if(!Auth.admin) return; await withRetry(()=>Store.setDoc("indice",{dates:S.index.dates,limit:S.index.limit,meta:S.index.meta})); }
+const alertCount=(rows)=>rows.filter(r=>isAlert(r,S.index.limit)).length;
+
+
+S.page=1; const PAGE=50;
+const ICON_XLS='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5"/><path d="M2.5 11.5v2h11v-2"/></svg>';
+const ICON_PDF='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6V2h8v4"/><rect x="2" y="6" width="12" height="6" rx="1"/><path d="M4 10h8v4H4z"/></svg>';
+
+/* ======== mini gráfico de barras (indicadores) ======== */
+function spark(vals,hi){
+  if(vals.length<2) return "";
+  const n=vals.length,gap=3,h=46,w=Math.min(110,n*15),bw=Math.min(12,Math.max(3,(w-gap*(n-1))/n)),max=Math.max(1,...vals);
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${vals.map((v,i)=>{
+    const bh=Math.max(2,v/max*(h-2)); return `<rect x="${i*(bw+gap)}" y="${h-bh}" width="${bw}" height="${bh}" rx="1.5" fill="${i===hi?"var(--red)":"#F3B7C0"}"/>`;}).join("")}</svg>`;
+}
+
+/* ======== moldura: menu, data, indicadores ======== */
+async function renderChrome(){
+  const asc=sorted(), ix=asc.indexOf(S.day);
+  document.querySelectorAll("[data-nav]").forEach(b=>{ if(b.dataset.nav===S.view) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+  $("daySel").innerHTML=asc.length?asc.slice().reverse().map(d=>`<option value="${d}" ${d===S.day?"selected":""}>${fmtDate(d)} (${wd(d)})</option>`).join(""):`<option value="">Nenhum dia</option>`;
+  $("dPrev").disabled=!(ix>0); $("dNext").disabled=!(ix>=0&&ix<asc.length-1);
+  const TT={dia:["Tabela do dia","Relatório diário de estoque da farmácia e da enfermagem"],
+    hist:["Histórico de estoque","Como os dias em estoque mudaram entre os relatórios salvos"],
+    compra:["Prioridade de compra","O que comprar primeiro, contando o que já está em trânsito"],
+    tend:["Tendências","Itens que estão piorando antes de entrarem em alerta"],
+    prod:["Pesquisa de produto","Tudo sobre um produto: estoque, consumo, compra e histórico"]};
+  $("pageTitle").textContent=TT[S.view][0]; $("pageSub").textContent=TT[S.view][1];
+  $("footRange").textContent=asc.length?`${fmtDate(asc[0])} a ${fmtDate(asc[asc.length-1])}`:"Nenhum dia salvo";
+  $("footStore").textContent=`${asc.length} relatório(s) salvos `+"na nuvem";
+  $("navImport").hidden=!Auth.admin; $("btnReset").hidden=!Auth.admin; $("btnLogin").textContent=Auth.email?"Sair ("+Auth.email+")":"Entrar";
+  if($("gq").value!==S.q) $("gq").value=S.q;
+  const k=$("kpis");
+  if(!S.day){ k.innerHTML=""; return; }
+  const lim=S.index.limit;
+  const win=asc.filter(d=>d<=S.day).slice(-14);
+  const series=[];
+  for(const d of win) series.push(alertCount(daySets(await loadDay(d))[S.tab]));
+  const rows=daySets(await loadDay(S.day))[S.tab];
+  const prevDate=win.length>1?win[win.length-2]:null;
+  const prevRows=prevDate?daySets(await loadDay(prevDate))[S.tab]:null;
+  const alerts=series[series.length-1];
+  const pAlerts=prevRows?alertCount(prevRows):null;
+  const zer=(rs)=>rs.filter(r=>r.sd_hosp<=0&&r.dias!==null).length;
+  const zerSeries=[]; for(const d of win) zerSeries.push(zer(daySets(await loadDay(d))[S.tab]));
+  const trans=rows.filter(r=>isAlert(r,lim)&&r.em_transito>0).length;
+  const pm=new Map(); if(prevRows) prevRows.forEach(r=>pm.set(r.nm_produto+"\u0001"+r.nm_unidade,r));
+  const novos=prevRows?rows.filter(r=>isAlert(r,lim)&&!(pm.get(r.nm_produto+"\u0001"+r.nm_unidade)&&isAlert(pm.get(r.nm_produto+"\u0001"+r.nm_unidade),lim))).length:null;
+  const delta=(a,b)=>{ if(b===null) return `<span class="d">primeiro relatório</span>`; const x=a-b;
+    return `<span class="d ${x>0?"bad":x<0?"good":""}">${x>0?"+":""}${x} vs. ${fmtDate(prevDate).slice(0,5)}</span>`; };
+  const pct=rows.length?Math.round(alerts/rows.length*100):0;
+  k.innerHTML=`
+    <div class="kpi"><div><h3>Itens em alerta</h3><div class="v">${alerts}</div>${delta(alerts,pAlerts)}</div>${spark(series,series.length-1)}</div>
+    <div class="kpi"><div><h3>Zerados com consumo</h3><div class="v">${zerSeries[zerSeries.length-1]}</div>${delta(zerSeries[zerSeries.length-1],prevRows?zer(prevRows):null)}</div>${spark(zerSeries,zerSeries.length-1)}</div>
+    <div class="kpi"><div><h3>Em alerta com compra em trânsito</h3><div class="v ink">${trans}</div><span class="d">${alerts?Math.round(trans/alerts*100):0}% dos itens em alerta</span></div></div>
+    <div class="kpi"><div><h3>${prevRows?"Entraram em alerta":"Itens no relatório"}</h3><div class="v ${prevRows?"":"ink"}">${prevRows?novos:rows.length}</div><span class="d">${prevRows?`desde ${fmtDate(prevDate).slice(0,5)}`:`${pct}% em alerta`}</span></div></div>`;
+}
+
+/* ======== abas e filtros ======== */
+async function tabsHtml(){
+  const s=S.day?daySets(await loadDay(S.day)):null;
+  return `<div class="tabs" role="tablist">${[["med","Medicamentos"],["mat","Materiais"],["qui","Quimioterápicos"]].map(([k,l])=>
+    `<button class="tab" role="tab" type="button" data-tab="${k}" aria-selected="${S.tab===k}">${l}<span class="n">${s?alertCount(s[k]):0}</span></button>`).join("")}</div>`;
+}
+function bindTabs(){
+  document.querySelectorAll("[data-tab]").forEach(b=>b.addEventListener("click",()=>{S.tab=b.dataset.tab; S.sort=null; S.page=1; render();}));
+  const q=$("q"); if(q) q.addEventListener("input",e=>{S.q=e.target.value; S.page=1; clearTimeout(bindTabs._t);
+    bindTabs._t=setTimeout(()=>render().then(()=>{const el=$("q"); if(el){el.focus(); el.setSelectionRange(el.value.length,el.value.length);}}),220);});
+  const lm=$("limit"); if(lm){
+    $("limMinus").addEventListener("click",()=>setLimit(S.index.limit-1));
+    $("limPlus").addEventListener("click",()=>setLimit(S.index.limit+1));
+    lm.addEventListener("change",e=>setLimit(e.target.value));
+  }
+  const ex=$("btnExport"); if(ex) ex.addEventListener("click",exportExcel);
+  const pd=$("btnPdf"); if(pd) pd.addEventListener("click",()=>{ try{ window.print(); }catch(e){ toast("Use Ctrl+P e escolha Salvar como PDF"); } });
+}
+function limitHtml(){
+  return `<div class="f"><label for="limit">Alerta abaixo de</label><div class="stepper"><button type="button" id="limMinus" aria-label="Diminuir limite">−</button><input id="limit" type="number" min="0" step="1" value="${S.index.limit}"><button type="button" id="limPlus" aria-label="Aumentar limite">+</button></div><span>dias</span></div>`;
+}
+function exportHtml(){ return `<div class="row" style="gap:8px;flex-wrap:nowrap"><button class="btn" type="button" id="btnPdf">${ICON_PDF}Exportar PDF</button><button class="btn primary" type="button" id="btnExport">${ICON_XLS}Exportar Excel</button></div>`; }
+
+/* ======== tabela do dia ======== */
+const COLS=[
+  ["nm_produto","Produto",""],["nm_unidade","Unid.",""],["sd_hosp","Saldo","num"],["cons_mensal","Consumo mensal","num"],
+  ["cons_diario","Consumo diário","num"],["dias","Dias em estoque","num"],["_prev","PREV","num"],["em_transito","Em trânsito","num"],
+  ["nm_grupo","Grupo",""],["_sit","Situação",""]
+];
+function prevCell(r){
+  const p=r._p; if(!p) return `<td class="num prev" title="Item não estava no relatório anterior">novo</td>`;
+  let arr="";
+  if(p.dias!==null&&r.dias!==null){ const dd=r.dias-p.dias; if(Math.abs(dd)>=0.05) arr=dd>0?` <span class="up" title="Subiu ${fmtNum(dd,1)} dias">▲</span>`:` <span class="dn" title="Caiu ${fmtNum(-dd,1)} dias">▼</span>`; }
+  return `<td class="num prev">${p.dias===null?"0":fmtNum(p.dias,1)}${arr}</td>`;
+}
+function pagerHtml(n){
+  const pages=Math.max(1,Math.ceil(n/PAGE)); if(S.page>pages) S.page=pages;
+  const p=S.page, list=[];
+  for(let i=1;i<=pages;i++){ if(i===1||i===pages||Math.abs(i-p)<=1) list.push(i); else if(list[list.length-1]!=="…") list.push("…"); }
+  const a=n?(p-1)*PAGE+1:0, b=Math.min(n,p*PAGE);
+  return `<div class="pager"><span class="info">Mostrando ${a} a ${b} de ${n} itens</span>
+    <button class="pg" type="button" data-pg="${p-1}" ${p<=1?"disabled":""} aria-label="Página anterior">‹</button>
+    ${list.map(i=>i==="…"?`<span class="msg">…</span>`:`<button class="pg" type="button" data-pg="${i}" aria-current="${i===p}">${i}</button>`).join("")}
+    <button class="pg" type="button" data-pg="${p+1}" ${p>=pages?"disabled":""} aria-label="Próxima página">›</button></div>`;
+}
+function bindPager(){ document.querySelectorAll("[data-pg]").forEach(b=>b.addEventListener("click",()=>{S.page=+b.dataset.pg; render().then(()=>$("view").scrollIntoView({block:"start"}));})); }
+
+async function render(){
+  await renderChrome();
+  const v=$("view");
+  if(!S.day){
+    v.innerHTML=`<div class="empty"><b>Nenhum dia importado ainda</b>Clique em Importar dia no menu e envie os relatórios de medicamentos e materiais do sistema.</div>`;
+    return;
+  }
+  if(S.view==="hist") return renderHist();
+  if(S.view==="compra") return renderCompra();
+  if(S.view==="tend") return renderTend();
+  if(S.view==="prod") return renderProd();
+  const lim=S.index.limit;
+  let rows=daySets(await loadDay(S.day))[S.tab];
+  const prevDate=S.index.dates.filter(x=>x<S.day).sort().pop()||null;
+  const prevMap=new Map();
+  if(prevDate){ for(const r of daySets(await loadDay(prevDate))[S.tab]) prevMap.set(r.nm_produto+"\u0001"+r.nm_unidade,r); }
+  rows=rows.map(r=>{const p=prevMap.get(r.nm_produto+"\u0001"+r.nm_unidade); return Object.assign({},r,{_p:p,_prev:p?p.dias:null,_sit:isAlert(r,lim)?0:r.dias===null?2:1});});
+  const total=rows.length;
+  const q=S.q.trim().toLowerCase();
+  if(q) rows=rows.filter(r=>(r.nm_produto+" "+r.nm_grupo+" "+r.nm_subgrupo).toLowerCase().includes(q));
+  if(S.onlyAlert) rows=rows.filter(r=>isAlert(r,lim));
+  const so=S.sort;
+  if(so){ rows=rows.slice().sort((a,b)=>{ let x=a[so.k], y=b[so.k]; if(x===null||x===undefined)x=Infinity; if(y===null||y===undefined)y=Infinity;
+    return so.dir*(typeof x==="string"?x.localeCompare(y,"pt"):x-y); }); }
+  const cols=COLS.filter(c=>c[0]!=="_prev"||prevDate).map(c=>c[0]==="_prev"?[c[0],`Em ${fmtDate(prevDate).slice(0,5)}`,c[2]]:c);
+  const pager=pagerHtml(rows.length);
+  const page=rows.slice((S.page-1)*PAGE,S.page*PAGE);
+  v.innerHTML=`${await tabsHtml()}
+    <div class="filters">
+      <div class="f"><label for="q">Produto</label><input type="search" id="q" placeholder="Nome, grupo ou subgrupo" value="${esc(S.q)}"></div>
+      ${limitHtml()}
+      <label class="chk"><input type="checkbox" id="onlyAlert" ${S.onlyAlert?"checked":""}> Só itens em alerta</label>
+      <span class="sp"></span>${exportHtml()}
+    </div>
+    <div class="tw"><table>
+      <thead><tr>${cols.map(([k,l,c])=>{const on=(so&&so.k===k)||(!so&&k==="dias");
+        return `<th class="${c} ${on?"on":""}" data-k="${k}">${l}${on?`<span class="arr">${so&&so.dir<0?"▼":"▲"}</span>`:""}</th>`;}).join("")}</tr></thead>
+      <tbody>${page.length?page.map(r=>{const a=isAlert(r,lim);
+        const sit=a?`<span class="pill crit">Estoque baixo</span>`:r.dias===null?`<span class="pill nc">Sem consumo</span>`:`<span class="pill ok">Normal</span>`;
+        return `<tr class="${a?"alert":""}">
+        <td class="prod" data-prod="${esc(r.nm_produto)}" style="cursor:pointer" title="Abrir pesquisa do produto">${esc(r.nm_produto)}</td><td class="un">${esc(r.nm_unidade)}</td>
+        <td class="num">${fmtNum(r.sd_hosp,0)}</td><td class="num">${fmtNum(r.cons_mensal,2)}</td><td class="num">${fmtNum(r.cons_diario,2)}</td>
+        <td class="num dias ${r.dias===null?"nc":""}">${r.dias===null?"0":fmtNum(r.dias,1)}</td>
+        ${prevDate?prevCell(r):""}
+        <td class="num">${fmtNum(r.em_transito,0)}</td>
+        <td class="grp">${esc(r.nm_grupo)}<span>${esc(r.nm_subgrupo)}</span></td><td>${sit}</td></tr>`;}).join("")
+        :`<tr><td colspan="${cols.length}" class="empty">Nenhum item encontrado com esse filtro.</td></tr>`}</tbody>
+    </table></div>
+    ${pager}`;
+  bindTabs(); bindPager(); bindProdLinks();
+  $("onlyAlert").addEventListener("change",e=>{S.onlyAlert=e.target.checked; S.page=1; render();});
+  v.querySelectorAll("th[data-k]").forEach(th=>th.addEventListener("click",()=>{
+    const k=th.dataset.k, cur=S.sort;
+    S.sort= cur&&cur.k===k ? (cur.dir>0?{k,dir:-1}:null) : {k,dir:1}; S.page=1;
+    render();
+  }));
+}
+
+/* ======== histórico ======== */
+function trendChart(dates,series){
+  if(!dates.length) return "";
+  const H=170, bw=26, gap=18, padL=8, w=Math.max(320,padL*2+dates.length*(bw*3+gap)), max=Math.max(1,...series.flatMap(s=>s.v));
+  const colors=["var(--red)","#F08A9A","#7A1020"];
+  let g="";
+  dates.forEach((d,i)=>{
+    const x0=padL+i*(bw*3+gap);
+    series.forEach((s,j)=>{ const v=s.v[i], bh=Math.max(1,v/max*(H-36)), x=x0+j*bw, y=H-20-bh;
+      g+=`<rect x="${x+2}" y="${y}" width="${bw-4}" height="${bh}" rx="3" fill="${colors[j]}"><title>${s.name} em ${fmtDate(d)}: ${v}</title></rect>
+          <text x="${x+bw/2}" y="${y-4}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)">${v}</text>`; });
+    g+=`<text x="${x0+bw*1.5}" y="${H-4}" text-anchor="middle" font-size="11" fill="var(--muted)">${fmtDate(d).slice(0,5)}</text>`;
+  });
+  const legend=series.map((s,j)=>`<span style="display:inline-flex;align-items:center;gap:6px;margin-right:14px;font-size:12px;font-weight:600"><i style="width:10px;height:10px;border-radius:2px;background:${colors[j]};display:inline-block"></i>${s.name}</span>`).join("");
+  return `<div style="margin-bottom:6px">${legend}</div><div class="chart"><svg width="${w}" height="${H}" viewBox="0 0 ${w} ${H}" role="img" aria-label="Itens em alerta por relatório">${g}</svg></div>`;
+}
+
+/* ======== prioridade de compra ======== */
+const ST_LABEL=[["crit","Comprar já"],["info","Trânsito cobre"],["warn","Planejar"]];
+S.stFilter=null;
+function metaHtml(){
+  return `<div class="f"><label for="meta">Cobrir</label><div class="stepper"><button type="button" id="metaMinus" aria-label="Diminuir meta">−</button><input id="meta" type="number" min="1" step="1" value="${S.index.meta}"><button type="button" id="metaPlus" aria-label="Aumentar meta">+</button></div><span>dias</span></div>`;
+}
+function setMeta(v){ v=Math.max(1,Math.round(+v||0)); S.index.meta=v; clearTimeout(setMeta._t); setMeta._t=setTimeout(()=>saveIndex().catch(()=>{}),600); render(); }
+function bindMeta(){
+  $("metaMinus").addEventListener("click",()=>setMeta(S.index.meta-1));
+  $("metaPlus").addEventListener("click",()=>setMeta(S.index.meta+1));
+  $("meta").addEventListener("change",e=>setMeta(e.target.value));
+}
+async function renderCompra(){
+  const v=$("view"), lim=S.index.limit, meta=S.index.meta;
+  const all=listaCompra(daySets(await loadDay(S.day))[S.tab],lim,meta);
+  const cnt=[0,1,2].map(s=>all.filter(r=>r._st===s).length);
+  let rows=all;
+  if(S.stFilter!==null) rows=rows.filter(r=>r._st===S.stFilter);
+  const q=S.q.trim().toLowerCase();
+  if(q) rows=rows.filter(r=>(r.nm_produto+" "+r.nm_grupo+" "+r.nm_subgrupo).toLowerCase().includes(q));
+  const hasSys=all.some(r=>r.a_comprar!==null);
+  const pager=pagerHtml(rows.length), page=rows.slice((S.page-1)*PAGE,S.page*PAGE);
+  v.innerHTML=`${await tabsHtml()}
+    <div class="filters">
+      <div class="f"><label for="q">Produto</label><input type="search" id="q" placeholder="Nome, grupo ou subgrupo" value="${esc(S.q)}"></div>
+      ${limitHtml()}${metaHtml()}<span class="sp"></span>${exportHtml()}
+    </div>
+    <div class="stchips">
+      <button class="stchip" type="button" data-st="" aria-pressed="${S.stFilter===null}">Todos <b>${all.length}</b></button>
+      ${ST_LABEL.map(([c,l],i)=>`<button class="stchip" type="button" data-st="${i}" aria-pressed="${S.stFilter===i}"><span class="pill ${c}">${l}</span><b>${cnt[i]}</b></button>`).join("")}
+    </div>
+    <p class="tip"><b>Comprar já</b>: mesmo somando o que está em trânsito, fica abaixo de ${lim} dias. <b>Trânsito cobre</b>: está em alerta hoje, mas a compra em trânsito resolve. <b>Planejar</b>: estoque + trânsito cobre menos de ${meta} dias. A sugestão é quanto falta para cobrir ${meta} dias de consumo.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Produto</th><th>Unid.</th><th class="num">Saldo</th><th class="num">Consumo diário</th><th class="num">Dias em estoque</th><th class="num">Em trânsito</th><th class="num">Dias c/ trânsito</th><th>Acaba em</th><th class="num">Sugestão (${meta} dias)</th>${hasSys?`<th class="num">A comprar (sistema)</th>`:""}<th>Status</th></tr></thead>
+      <tbody>${page.length?page.map(r=>{
+        const fim=r.sd_hosp<=0?"Zerado":`${fmtDate(addDays(S.day,Math.floor(r.dias))).slice(0,5)} (${wd(addDays(S.day,Math.floor(r.dias)))})`;
+        return `<tr class="${r._st===0?"alert":""}"><td class="prod" data-prod="${esc(r.nm_produto)}" style="cursor:pointer" title="Abrir pesquisa do produto">${esc(r.nm_produto)}</td><td class="un">${esc(r.nm_unidade)}</td>
+        <td class="num">${fmtNum(r.sd_hosp,0)}</td><td class="num">${fmtNum(r.cons_diario,2)}</td>
+        <td class="num dias">${fmtNum(r.dias,1)}</td><td class="num">${fmtNum(r.em_transito,0)}</td>
+        <td class="num"><b>${fmtNum(r.dias_transito,1)}</b></td><td>${fim}</td>
+        <td class="num sug">${fmtNum(r._sug,0)}</td>${hasSys?`<td class="num">${r.a_comprar===null?"–":fmtNum(r.a_comprar,0)}</td>`:""}
+        <td><span class="pill ${ST_LABEL[r._st][0]}">${ST_LABEL[r._st][1]}</span></td></tr>`;}).join("")
+        :`<tr><td colspan="11" class="empty">Nada para comprar com esses filtros.</td></tr>`}</tbody>
+    </table></div>
+    ${pager}
+    ${hasSys?"":`<p class="note">A coluna "A comprar (sistema)" aparece para relatórios importados a partir desta versão.</p>`}`;
+  bindTabs(); bindPager(); bindMeta(); bindProdLinks();
+  v.querySelectorAll("[data-st]").forEach(b=>b.addEventListener("click",()=>{S.stFilter=b.dataset.st===""?null:+b.dataset.st; S.page=1; render();}));
+}
+
+/* ======== tendências ======== */
+S.tendAll=false;
+function miniLine(ds,lim){
+  const vals=ds.filter(v=>v!==null); if(vals.length<2) return "";
+  const w=96,hh=26,max=Math.max(lim*1.5,...vals),n=ds.length;
+  const pts=ds.map((v,i)=>v===null?null:[(i/(n-1))*w, hh-2-(Math.min(v,max)/max)*(hh-4)]);
+  const path=pts.filter(Boolean).map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const ly=hh-2-(lim/max)*(hh-4), lp=pts.filter(Boolean).pop();
+  return `<svg width="${w}" height="${hh}" viewBox="0 0 ${w} ${hh}" aria-hidden="true"><line x1="0" x2="${w}" y1="${ly}" y2="${ly}" stroke="var(--red)" stroke-dasharray="3 3" stroke-width="1"/><path d="${path}" fill="none" stroke="var(--ink)" stroke-width="1.6"/><circle cx="${lp[0]}" cy="${lp[1]}" r="2.6" fill="${vals[vals.length-1]<lim?"var(--red)":"var(--ink)"}"/></svg>`;
+}
+async function renderTend(){
+  const v=$("view"), lim=S.index.limit, meta=S.index.meta;
+  const dates=sorted().filter(d=>d<=S.day).slice(-S.histRange);
+  const days=await Promise.all(dates.map(loadDay));
+  const maps=days.map(d=>{const m=new Map(); daySets(d)[S.tab].forEach(r=>m.set(r.nm_produto+"\u0001"+r.nm_unidade,r)); return m;});
+  const today=daySets(await loadDay(S.day))[S.tab];
+  let items=today.map(r=>{
+    const k=r.nm_produto+"\u0001"+r.nm_unidade;
+    const t=tendencia(maps.map(m=>{const x=m.get(k); return x?{dias:x.dias,cons:x.cons_mensal}:undefined;}));
+    const flags=[];
+    if(t.quedas>=2) flags.push(["crit",`Caindo há ${t.quedas} relatórios`]);
+    if(t.consVar!==null&&t.consVar>=0.2) flags.push(["warn",`Consumo +${Math.round(t.consVar*100)}%`]);
+    if(r.dias!==null&&r.dias>=lim&&r.dias<lim*2&&t.variacao!==null&&t.variacao<0) flags.push(["info","Perto do alerta"]);
+    return Object.assign({},r,{_t:t,_flags:flags});
+  });
+  const flagged=items.filter(r=>r._flags.length);
+  if(!S.tendAll) items=flagged;
+  const q=S.q.trim().toLowerCase();
+  if(q) items=items.filter(r=>(r.nm_produto+" "+r.nm_grupo+" "+r.nm_subgrupo).toLowerCase().includes(q));
+  items.sort((a,b)=>b._t.quedas-a._t.quedas||((a.dias??1e9)-(b.dias??1e9))||a.nm_produto.localeCompare(b.nm_produto,"pt",{sensitivity:"base",numeric:true}));
+  const pager=pagerHtml(items.length), page=items.slice((S.page-1)*PAGE,S.page*PAGE);
+  const fewDays=dates.length<3;
+  v.innerHTML=`${await tabsHtml()}
+    <div class="filters">
+      <div class="f"><label for="q">Produto</label><input type="search" id="q" placeholder="Nome, grupo ou subgrupo" value="${esc(S.q)}"></div>
+      <div class="f"><label for="hr">Período</label><select id="hr">${[7,14,30,60,90].map(n=>`<option value="${n}" ${n===S.histRange?"selected":""}>Últimos ${n} relatórios</option>`).join("")}</select></div>
+      ${limitHtml()}
+      <label class="chk"><input type="checkbox" id="tAll" ${S.tendAll?"checked":""}> Mostrar todos os itens</label>
+      <span class="sp"></span>
+    </div>
+    <p class="tip">${fewDays?`<b>Só ${dates.length} relatório(s) no período.</b> A tendência fica confiável a partir de 3 relatórios seguidos. `:""}<b>Caindo</b>: dias de estoque caíram em relatórios seguidos, ou seja, o item está sendo consumido sem reposição. <b>Consumo +%</b>: o consumo mensal subiu 20% ou mais no período. <b>Perto do alerta</b>: ainda acima de ${lim} dias, mas caindo e abaixo de ${lim*2}. ${flagged.length} itens sinalizados.</p>
+    <div class="tw"><table>
+      <thead><tr><th>Produto</th><th>Unid.</th><th>Evolução (${dates.length} relatórios)</th><th class="num">Dias hoje</th><th class="num">Variação no período</th><th class="num">Consumo mensal</th><th class="num">Variação consumo</th><th>Sinais</th></tr></thead>
+      <tbody>${page.length?page.map(r=>{const t=r._t;
+        return `<tr class="${isAlert(r,lim)?"alert":""}"><td class="prod" data-prod="${esc(r.nm_produto)}" style="cursor:pointer" title="Abrir pesquisa do produto">${esc(r.nm_produto)}</td><td class="un">${esc(r.nm_unidade)}</td>
+        <td class="spk">${miniLine(t.ds,lim)}</td>
+        <td class="num dias">${r.dias===null?"0":fmtNum(r.dias,1)}</td>
+        <td class="num">${t.variacao===null?"–":(t.variacao>0?"+":"")+fmtNum(t.variacao,1)}</td>
+        <td class="num">${fmtNum(r.cons_mensal,2)}</td>
+        <td class="num">${t.consVar===null?"–":(t.consVar>0?"+":"")+Math.round(t.consVar*100)+"%"}</td>
+        <td>${r._flags.map(([c,l])=>`<span class="pill ${c}" style="margin:2px 4px 2px 0">${l}</span>`).join("")||"–"}</td></tr>`;}).join("")
+        :`<tr><td colspan="8" class="empty">${fewDays?"Importe mais relatórios para ver tendências.":"Nenhum item piorando com esses filtros."}</td></tr>`}</tbody>
+    </table></div>
+    ${pager}`;
+  bindTabs(); bindPager(); bindProdLinks();
+  $("hr").addEventListener("change",e=>{S.histRange=+e.target.value; S.page=1; render();});
+  $("tAll").addEventListener("change",e=>{S.tendAll=e.target.checked; S.page=1; render();});
+}
+
+/* ======== pesquisa de produto ======== */
+S.prod=null;
+function bindProdLinks(){ document.querySelectorAll("[data-prod]").forEach(td=>td.addEventListener("click",()=>{S.prod=td.dataset.prod; S.view="prod"; render();})); }
+async function catalog(){
+  const d=daySets(await loadDay(S.day)), out=[];
+  for(const k of ["med","mat","qui"]) for(const r of d[k]) out.push({n:r.nm_produto,u:r.nm_unidade,k,r});
+  return out;
+}
+const norm=(s)=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+async function renderProd(){
+  const v=$("view"), lim=S.index.limit, meta=S.index.meta;
+  const cat=await catalog();
+  let body="";
+  const it=S.prod?cat.find(c=>c.n===S.prod):null;
+  if(!S.prod){
+    body=`<div class="empty"><b>Digite o nome de um produto</b>Busca em medicamentos, materiais e quimioterápicos de ${fmtDate(S.day)}. Dá para clicar em qualquer produto nas telas de Prioridade de compra e Tendências.</div>`;
+  }else if(!it){
+    body=`<div class="empty"><b>"${esc(S.prod)}" não está no relatório de ${fmtDate(S.day)}</b>Escolha outra data ou outro produto.</div>`;
+  }else{
+    const r=it.r, key=r.nm_produto+"\u0001"+r.nm_unidade;
+    const dates=sorted().filter(d=>d<=S.day).slice(-90);
+    const hist=[];
+    for(const d of dates){ const x=daySets(await loadDay(d))[it.k].find(y=>y.nm_produto+"\u0001"+y.nm_unidade===key); hist.push({d,x}); }
+    const pts=hist.filter(h=>h.x);
+    const t=tendencia(hist.map(h=>h.x?{dias:h.x.dias,cons:h.x.cons_mensal}:undefined));
+    const alertDays=pts.filter(h=>isAlert(h.x,lim)).length;
+    const st=statusCompra(r,lim,meta);
+    const stHtml=r.dias===null?`<span class="pill nc">Sem consumo</span>`:isAlert(r,lim)?`<span class="pill crit">Estoque baixo</span>`:`<span class="pill ok">Normal</span>`;
+    const f=(lbl,val,red)=>`<div class="fact"><small>${lbl}</small><b class="${red?"red":""}">${val}</b></div>`;
+    const opt=(x,dec)=>x===null?"–":fmtNum(x,dec||0);
+    // gráfico dias por relatório
+    let chart="";
+    if(pts.length>=1){
+      const W=Math.max(360,pts.length*44), H=180, max=Math.max(lim*1.5,...pts.map(h=>h.x.dias||0)), bw=26;
+      const y=(v)=>H-24-(Math.min(v,max)/max)*(H-44);
+      chart=`<div class="chartcard"><h3>Dias em estoque por relatório</h3><p>Linha tracejada: limite de alerta (${lim} dias).</p><div class="chart"><svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Dias em estoque por relatório">
+        ${pts.map((h,i)=>{const val=h.x.dias===null?0:h.x.dias, x=10+i*44, yy=y(val);
+          return `<rect x="${x}" y="${yy}" width="${bw}" height="${H-24-yy}" rx="3" fill="${isAlert(h.x,lim)?"var(--red)":"#F3B7C0"}"><title>${fmtDate(h.d)}: ${fmtNum(val,1)} dias</title></rect>
+          <text x="${x+bw/2}" y="${yy-4}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)">${fmtNum(val,1)}</text>
+          <text x="${x+bw/2}" y="${H-8}" text-anchor="middle" font-size="10.5" fill="var(--muted)">${fmtDate(h.d).slice(0,5)}</text>`;}).join("")}
+        <line x1="0" x2="${W}" y1="${y(lim)}" y2="${y(lim)}" stroke="var(--red)" stroke-dasharray="4 4"/></svg></div></div>`;
+    }
+    body=`<div class="ph"><h2>${esc(r.nm_produto)}</h2><span>${esc(r.nm_unidade)} · ${{med:"Medicamentos",mat:"Materiais",qui:"Quimioterápicos"}[it.k]} · ${esc(r.nm_grupo)} / ${esc(r.nm_subgrupo)}</span>${stHtml}
+        ${st!==null?`<span class="pill ${ST_LABEL[st][0]}">${ST_LABEL[st][1]}</span>`:""}</div>
+      <div class="facts">
+        ${f("Saldo hospital",fmtNum(r.sd_hosp,0),r.sd_hosp<=0&&r.dias!==null)}
+        ${f("Dias em estoque",r.dias===null?"0":fmtNum(r.dias,1),isAlert(r,lim))}
+        ${f("Em trânsito",fmtNum(r.em_transito,0))}
+        ${f("Dias c/ trânsito",r.dias_transito===null?"–":fmtNum(r.dias_transito,1),r.dias_transito!==null&&r.dias_transito<lim)}
+        ${f("Acaba em",r.dias===null?"–":r.sd_hosp<=0?"Zerado":fmtDate(addDays(S.day,Math.floor(r.dias))),isAlert(r,lim))}
+        ${f("Consumo mensal",fmtNum(r.cons_mensal,2))}
+        ${f("Consumo diário",fmtNum(r.cons_diario,2))}
+        ${f(`Sugestão p/ ${meta} dias`,fmtNum(sugestao(r,meta),0),sugestao(r,meta)>0)}
+        ${f("Saldo almoxarifado",opt(r.sd_almox))}
+        ${f("Saldo farmácia",opt(r.sd_farm))}
+        ${f("Estoque mínimo",opt(r.est_min))}
+        ${f("Ponto de pedido",opt(r.ponto_pedido))}
+        ${f("Estoque máximo",opt(r.est_max))}
+        ${f("A comprar (sistema)",opt(r.a_comprar))}
+        ${f("Relatórios em alerta",`${alertDays} de ${pts.length}`,alertDays>0)}
+        ${f("Tendência no período",t.quedas>=2?`Caindo há ${t.quedas} relatórios`:t.variacao===null?"–":Math.abs(t.variacao)<0.05?"Estável":(t.variacao>0?"+":"")+fmtNum(t.variacao,1)+" dias",t.quedas>=2)}
+      </div>
+      ${chart}
+      <div class="tw" style="margin-top:6px"><table>
+        <thead><tr><th>Data</th><th class="num">Saldo</th><th class="num">Consumo mensal</th><th class="num">Dias em estoque</th><th class="num">Em trânsito</th><th class="num">Dias c/ trânsito</th><th>Situação</th></tr></thead>
+        <tbody>${hist.slice().reverse().map(h=>{const x=h.x; if(!x) return `<tr><td>${fmtDate(h.d)} (${wd(h.d)})</td><td colspan="6" class="nc">Não veio no relatório deste dia</td></tr>`;
+          const a=isAlert(x,lim);
+          return `<tr class="${a?"alert":""}"><td>${fmtDate(h.d)} (${wd(h.d)})</td><td class="num">${fmtNum(x.sd_hosp,0)}</td><td class="num">${fmtNum(x.cons_mensal,2)}</td>
+            <td class="num dias">${x.dias===null?"0":fmtNum(x.dias,1)}</td><td class="num">${fmtNum(x.em_transito,0)}</td>
+            <td class="num">${x.dias_transito===null?"–":fmtNum(x.dias_transito,1)}</td>
+            <td>${a?`<span class="pill crit">Estoque baixo</span>`:x.dias===null?`<span class="pill nc">Sem consumo</span>`:`<span class="pill ok">Normal</span>`}</td></tr>`;}).join("")}</tbody>
+      </table></div><div style="height:18px"></div>`;
+  }
+  v.innerHTML=`<div class="psearch"><label for="pq" class="f" style="margin-bottom:8px">Pesquisar produto</label>
+      <input id="pq" type="search" autocomplete="off" placeholder="Ex.: dipirona, seringa 10, luva 7,5" value="${esc(S.prodQ??(S.prod||""))}" role="combobox" aria-expanded="false" aria-controls="sugg">
+      <div class="sugg" id="sugg" hidden role="listbox"></div></div>${body}`;
+  const pq=$("pq"), sg=$("sugg"); let act=-1, list=[];
+  const show=()=>{
+    const q=norm(pq.value.trim()); S.prodQ=pq.value;
+    if(q.length<2){ sg.hidden=true; pq.setAttribute("aria-expanded","false"); return; }
+    const terms=q.split(/\s+/);
+    list=cat.filter(c=>{const n=norm(c.n); return terms.every(t=>n.includes(t));})
+      .sort((a,b)=>(norm(a.n).startsWith(terms[0])?0:1)-(norm(b.n).startsWith(terms[0])?0:1)||a.n.localeCompare(b.n,"pt",{sensitivity:"base",numeric:true})).slice(0,30);
+    act=-1;
+    sg.innerHTML=list.length?list.map((c,i)=>`<button type="button" role="option" data-i="${i}"><span>${esc(c.n)} <small>${esc(c.u)}</small></span><small>${{med:"Medicamento",mat:"Material",qui:"Quimioterápico"}[c.k]} · ${c.r.dias===null?"sem consumo":fmtNum(c.r.dias,1)+" dias"}</small></button>`).join("")
+      :`<div class="empty" style="padding:16px">Nenhum produto encontrado.</div>`;
+    sg.hidden=false; pq.setAttribute("aria-expanded","true");
+    sg.querySelectorAll("[data-i]").forEach(b=>b.addEventListener("mousedown",e=>{e.preventDefault(); pick(+b.dataset.i);}));
+  };
+  const pick=(i)=>{ const c=list[i]; if(!c) return; S.prod=c.n; S.prodQ=c.n; render(); };
+  pq.addEventListener("input",show);
+  pq.addEventListener("focus",()=>{ if(pq.value.trim().length>=2 && !S.prod) show(); });
+  pq.addEventListener("blur",()=>setTimeout(()=>{sg.hidden=true;},150));
+  pq.addEventListener("keydown",e=>{
+    const bs=[...sg.querySelectorAll("[data-i]")];
+    if(e.key==="ArrowDown"){ e.preventDefault(); act=Math.min(bs.length-1,act+1); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); act=Math.max(0,act-1); }
+    else if(e.key==="Enter"){ e.preventDefault(); pick(act>=0?act:0); return; }
+    else return;
+    bs.forEach((b,i)=>b.classList.toggle("act",i===act)); if(bs[act]) bs[act].scrollIntoView({block:"nearest"});
+  });
+  if(!S.prod) pq.focus();
+}
+
+async function renderHist(){
+  const v=$("view"), lim=S.index.limit;
+  const all=sorted(), dates=all.filter(d=>d<=S.day).slice(-S.histRange);
+  const days=await Promise.all(dates.map(loadDay));
+  const series=[["med","Medicamentos"],["mat","Materiais"],["qui","Quimioterápicos"]].map(([k,n])=>({name:n,v:days.map(d=>alertCount(daySets(d)[k]))}));
+  const h=buildHistory(days);
+  let items=h.kinds[S.tab];
+  items.forEach(it=>{it.cnt=dates.filter(d=>typeof it.v[d]==="number"&&it.v[d]<lim).length;});
+  const q=S.q.trim().toLowerCase();
+  if(q) items=items.filter(it=>(it.nm_produto+" "+it.nm_grupo).toLowerCase().includes(q));
+  if(S.histOnlyAlert) items=items.filter(it=>it.cnt>0).sort((a,b)=>b.cnt-a.cnt);
+  const lastD=dates[dates.length-1];
+  const pager=pagerHtml(items.length);
+  const page=items.slice((S.page-1)*PAGE,S.page*PAGE);
+  v.innerHTML=`
+    <div class="chartcard"><h3>Itens em alerta por relatório</h3><p>Quantos itens ficaram abaixo de ${lim} dias de estoque em cada dia importado.</p>${trendChart(dates,series)}</div>
+    ${await tabsHtml()}
+    <div class="filters">
+      <div class="f"><label for="q">Produto</label><input type="search" id="q" placeholder="Nome ou grupo" value="${esc(S.q)}"></div>
+      <div class="f"><label for="hr">Período</label><select id="hr">${[7,14,30,60,90].map(n=>`<option value="${n}" ${n===S.histRange?"selected":""}>Últimos ${n} relatórios</option>`).join("")}</select></div>
+      <label class="chk"><input type="checkbox" id="hOnly" ${S.histOnlyAlert?"checked":""}> Só itens que já entraram em alerta</label>
+      <span class="sp"></span>${exportHtml()}
+    </div>
+    <div class="tw"><table>
+      <thead><tr><th>Produto</th><th>Unid.</th><th class="num">Relatórios em alerta</th>
+        ${dates.map(d=>`<th class="num">${fmtDate(d).slice(0,5)} <span style="font-weight:500">${wd(d)}</span></th>`).join("")}</tr></thead>
+      <tbody>${page.length?page.map(it=>{const lv=it.v[lastD];
+        return `<tr class="${typeof lv==="number"&&lv<lim?"alert":""}"><td class="prod">${esc(it.nm_produto)}</td><td class="un">${esc(it.nm_unidade)}</td>
+          <td class="num"><b>${it.cnt}</b></td>
+          ${dates.map(d=>{const x=it.v[d]; if(x===undefined) return `<td class="hc miss">–</td>`; if(x===null) return `<td class="hc miss">0</td>`;
+            return `<td class="hc ${x<lim?"low":""}">${fmtNum(x,1)}</td>`;}).join("")}</tr>`;}).join("")
+        :`<tr><td colspan="${3+dates.length}" class="empty">Nenhum item encontrado com esse filtro.</td></tr>`}</tbody>
+    </table></div>
+    ${pager}
+    <p class="note">Cada coluna é o relatório de um dia. Vermelho: abaixo de ${lim} dias. 0 em cinza: sem consumo no mês. Traço: o item não veio no relatório daquele dia. ${Auth.admin?"Para apagar um relatório importado por engano, use o × ao lado da data:":"Datas dos relatórios salvos:"}</p>
+    <div class="chips">${all.slice().reverse().map(d=>`<span class="chip">${fmtDate(d)}${Auth.admin?`<button type="button" data-del="${d}" aria-label="Apagar ${fmtDate(d)}">×</button>`:""}</span>`).join("")}</div>`;
+  bindTabs(); bindPager();
+  $("hr").addEventListener("change",e=>{S.histRange=+e.target.value; S.page=1; render();});
+  $("hOnly").addEventListener("change",e=>{S.histOnlyAlert=e.target.checked; S.page=1; render();});
+  v.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",()=>deleteDay(b.dataset.del)));
+}
+async function deleteDay(d){
+  if(!(await askConfirm(`Apagar o relatório de ${fmtDate(d)} do histórico?`,"Apagar dia",true))) return;
+  try{
+    await withRetry(()=>Store.delDoc("dia_"+d+"_mat")); await withRetry(()=>Store.delDoc("dia_"+d+"_med"));
+    S.index.dates=S.index.dates.filter(x=>x!==d); delete S.cache[d]; await saveIndex();
+    if(S.day===d) S.day=sorted().pop()||null;
+    await render(); toast(`Relatório de ${fmtDate(d)} apagado`);
+  }catch(e){ toast("Não foi possível apagar: "+(e.message||e.code)); }
+}
+
+/* ======== importação ======== */
+function todayISO(){ const t=new Date(); return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,"0")}-${String(t.getDate()).padStart(2,"0")}`; }
+function openImport(){ if(!Auth.admin) return; $("drop").hidden=false; S.pending={med:null,mat:null}; $("impDate").dataset.touched=""; $("impDate").value=todayISO(); updateSlots(); $("impMsg").textContent=""; $("impMsg").className="msg"; $("drop").scrollIntoView({block:"start"}); }
+function updateSlots(){
+  for(const k of ["med","mat"]){
+    const el=$(k==="med"?"slotMed":"slotMat"), p=S.pending[k];
+    el.classList.toggle("filled",!!p);
+    el.querySelector("span").textContent=p?`${p.name} (${p.rows.length} itens)`:"aguardando arquivo";
+  }
+  $("btnProcess").disabled=!(S.pending.med||S.pending.mat)||!$("impDate").value;
+}
+async function readFiles(files){
+  const msg=$("impMsg"); msg.className="msg"; msg.textContent="";
+  for(const f of files){
+    try{
+      if(typeof XLSX==="undefined") throw new Error("o leitor de planilhas não carregou. Verifique a internet e recarregue a página");
+      const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});
+      const rows=tratarBruto(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""}));
+      S.pending[guessKind(f.name,rows)]={name:f.name,rows};
+      const gd=guessDate(f.name,new Date().getFullYear());
+      if(gd && !$("impDate").dataset.touched) $("impDate").value=gd;
+    }catch(e){ msg.className="msg err"; msg.textContent=`${f.name}: ${e.message}`; }
+  }
+  updateSlots();
+  if(msg.className!=="msg") return;
+  msg.textContent = S.pending.med&&S.pending.mat ? "Os dois arquivos foram reconhecidos. Confira a data e clique em Processar e salvar."
+    : "Falta um arquivo. Você pode processar só este; a outra categoria fica vazia nesse dia.";
+}
+async function processImport(){
+  const date=$("impDate").value; if(!date) return;
+  if(S.index.dates.includes(date) && !(await askConfirm(`Já existe um relatório salvo em ${fmtDate(date)}. Substituir pelo novo? Os outros dias não mudam.`,"Substituir",true))) return;
+  const btn=$("btnProcess"); btn.disabled=true; btn.textContent="Salvando…";
+  try{
+    const prev=S.index.dates.includes(date)?await loadDay(date):{mat:[],med:[]};
+    const mat=S.pending.mat?S.pending.mat.rows:prev.mat, med=S.pending.med?S.pending.med.rows:prev.med;
+    await withRetry(()=>Store.setDoc("dia_"+date+"_mat",{date,kind:"mat",rows:mat}));
+    await withRetry(()=>Store.setDoc("dia_"+date+"_med",{date,kind:"med",rows:med}));
+    if(!S.index.dates.includes(date)) S.index.dates.push(date);
+    S.index.dates.sort(); await saveIndex();
+    S.cache[date]={date,mat,med}; S.day=date; S.view="dia"; S.page=1;
+    $("drop").hidden=true;
+    await render(); toast(`Relatório de ${fmtDate(date)} salvo`);
+  }catch(e){
+    $("impMsg").className="msg err";
+    $("impMsg").textContent=e&&e.code==="quota_exceeded"?"O espaço do histórico está cheio. Apague dias antigos no Histórico.":"Não foi possível salvar: "+(e.message||e.code);
+  }finally{ btn.textContent="Processar e salvar"; updateSlots(); }
+}
+
+/* ======== exportação ======== */
+async function exportExcel(){
+  if(!S.day) return;
+  const btn=$("btnExport"); btn.disabled=true; btn.textContent="Gerando…";
+  try{
+    if(typeof ExcelJS==="undefined") throw new Error("o gerador de Excel não carregou");
+    const sets=daySets(await loadDay(S.day));
+    const upto=sorted().filter(d=>d<=S.day).slice(-60);
+    const hist=buildHistory(await Promise.all(upto.map(loadDay)));
+    const buf=await buildWorkbook(ExcelJS,S.day,S.index.limit,sets,hist,S.index.meta);
+    const [y,m,d]=S.day.split("-"), filename=`Relatorio_Consumo_${d}_${m}_${y}.xlsx`;
+    const blob=new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+    let dl=null; try{ dl=window.claude&&window.claude.use?await window.claude.use("downloads"):null; }catch(e){}
+    if(dl){ try{ await dl.save({filename,data:blob}); toast("Excel exportado"); }catch(e){ if(e.code!=="declined") toast("Download indisponível: "+(e.message||e.code)); } }
+    else{ const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); toast("Excel exportado"); }
+  }catch(e){ toast("Erro ao gerar o Excel: "+e.message); }
+  finally{ const b2=$("btnExport"); if(b2){ b2.disabled=false; b2.innerHTML=ICON_XLS+"Exportar Excel"; } }
+}
+
+
+/* ======== eventos ======== */
+function setLimit(v){
+  v=Math.max(0,Math.round(+v||0)); S.index.limit=v;
+  clearTimeout(setLimit._t); setLimit._t=setTimeout(()=>saveIndex().catch(()=>{}),600);
+  render();
+}
+function stepDay(k){ const a=sorted(), i=a.indexOf(S.day)+k; if(i>=0&&i<a.length){ S.day=a[i]; S.page=1; render(); } }
+$("dPrev").addEventListener("click",()=>stepDay(-1));
+$("dNext").addEventListener("click",()=>stepDay(1));
+$("daySel").addEventListener("change",e=>{ if(!e.target.value) return; S.day=e.target.value; S.page=1; render(); });
+document.querySelectorAll("[data-nav]").forEach(b=>b.addEventListener("click",()=>{
+  if(b.dataset.nav==="import"){ openImport(); return; }
+  S.view=b.dataset.nav; S.page=1; render();
+}));
+$("gq").addEventListener("input",e=>{ S.q=e.target.value; S.page=1; clearTimeout(window._gq); window._gq=setTimeout(()=>render().then(()=>$("gq").focus()),250); });
+$("btnCancel").addEventListener("click",()=>{$("drop").hidden=true;});
+$("btnProcess").addEventListener("click",processImport);
+$("btnReset").addEventListener("click",async()=>{
+  if(!(await askConfirm("Apagar todos os relatórios importados e o histórico? Essa ação não pode ser desfeita.","Apagar tudo",true))) return;
+  try{
+    await Store.clearAll();
+    S.index={dates:[],limit:7,meta:30}; S.cache={}; S.day=null; S.view="dia"; S.q=""; S.sort=null; S.page=1;
+    await render(); openImport(); toast("Todos os dados foram apagados");
+  }catch(e){ toast("Não foi possível apagar: "+(e.message||e.code)); }
+});
+$("fileIn").addEventListener("change",e=>{ readFiles([...e.target.files]); e.target.value=""; });
+$("impDate").addEventListener("change",e=>{ e.target.dataset.touched="1"; updateSlots(); });
+const drop=$("drop");
+["dragenter","dragover"].forEach(ev=>document.addEventListener(ev,e=>{e.preventDefault(); if(!Auth.admin) return; if(drop.hidden) openImport(); drop.classList.add("over");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault(); drop.classList.remove("over");}));
+document.addEventListener("drop",e=>{e.preventDefault(); drop.classList.remove("over"); if(e.dataTransfer&&e.dataTransfer.files.length) readFiles([...e.dataTransfer.files]);});
+
+/* ======== login ======== */
+$("btnLogin").addEventListener("click",async()=>{
+  if(Auth.email){ await sb.auth.signOut(); await refreshAuth(); if(S.view==="import") S.view="dia"; $("drop").hidden=true; await render(); toast("Sessão encerrada"); return; }
+  $("lgErr").textContent=""; $("lgPass").value=""; $("loginModal").hidden=false; $("lgEmail").focus();
+});
+$("lgNo").addEventListener("click",()=>{ $("loginModal").hidden=true; });
+$("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault(); const b=$("lgYes"); b.disabled=true;
+  try{
+    const r=await sb.auth.signInWithPassword({email:$("lgEmail").value.trim(),password:$("lgPass").value});
+    if(r.error){ $("lgErr").textContent="E-mail ou senha incorretos."; return; }
+    await refreshAuth(); $("loginModal").hidden=true; $("lgPass").value="";
+    await render(); toast(Auth.admin?"Login de administrador":"Login feito, mas este e-mail não é administrador");
+  }catch(err){ $("lgErr").textContent="Não foi possível entrar: "+(err.message||err); }
+  finally{ b.disabled=false; }
+});
+async function reloadIndex(){
+  try{
+    const idx=await Store.getDoc("indice"); if(!idx) return;
+    const dates=(idx.dates||[]).slice().sort();
+    const changed=JSON.stringify(dates)!==JSON.stringify(sorted());
+    S.index.dates=dates; S.index.limit=typeof idx.limit==="number"?idx.limit:7; S.index.meta=typeof idx.meta==="number"?idx.meta:30;
+    if(changed){ S.cache={}; setsCache.clear(); if(!S.day||!dates.includes(S.day)||S.day===dates[dates.length-2]) S.day=dates[dates.length-1]||null; await render(); }
+  }catch(e){ console.warn(e); }
+}
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && $("drop").hidden && $("modal").hidden) reloadIndex(); });
+window.addEventListener("focus",()=>{ if($("drop").hidden && $("modal").hidden) reloadIndex(); });
+
+/* ======== início ======== */
+(async function start(){
+  render();
+  try{ await Store.init(); await refreshAuth(); }catch(e){ console.warn(e); }
+  try{
+    const idx=await withRetry(()=>Store.getDoc("indice"));
+    if(idx){ S.index.dates=(idx.dates||[]).slice().sort(); S.index.limit=typeof idx.limit==="number"?idx.limit:7; S.index.meta=typeof idx.meta==="number"?idx.meta:30; }
+  }catch(e){ console.warn(e); }
+  S.day=sorted().pop()||null;
+  await render();
+  if(!S.day && Auth.admin) openImport();
+})();
+
+</script>
+</body>
+</html>
